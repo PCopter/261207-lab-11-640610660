@@ -5,6 +5,8 @@ import bcrypt from "bcrypt";
 export default function login(req, res) {
   if (req.method === "POST") {
     const { username, password } = req.body;
+
+    //validate body
     if (
       typeof username !== "string" ||
       username.length === 0 ||
@@ -15,13 +17,11 @@ export default function login(req, res) {
         .status(400)
         .json({ ok: false, message: "Username or password cannot be empty" });
 
-    //validate body
-
     const users = readUsersDB();
 
     //find users with username, password
     const foundUser = users.find(
-      (x) => x.username && bcrypt.compareSync(password, x.password)
+      (x) => x.username === username && bcrypt.compareSync(password, x.password)
     );
     if (!foundUser)
       return res
@@ -31,15 +31,16 @@ export default function login(req, res) {
     //sign token
     const secret = process.env.JWT_SECRET;
     const token = jwt.sign(
-      {
-        username: foundUser.username,
-        isAdmin: foundUser.isAdmin,
-      },
+      { username: foundUser.username, isAdmin: foundUser.isAdmin },
       secret,
       { expiresIn: "1800s" }
     );
-
     //return response
-    return res.json({ ok: true, username: username, isAdmin: username, token });
+    return res.json({
+      ok: true,
+      username: foundUser.username,
+      isAdmin: foundUser.isAdmin,
+      token,
+    });
   }
 }
